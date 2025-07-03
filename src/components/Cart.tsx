@@ -1,15 +1,24 @@
-import { useSelector, useDispatch } from 'react-redux';
-import { X, Plus, Minus, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { RootState } from '@/store/store';
-import { removeFromCart, updateQuantity, setCartOpen } from '@/store/slices/cartSlice';
-import { toast } from '@/hooks/use-toast';
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { X, Plus, Minus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { RootState } from "@/store/store";
+import {
+  removeFromCart,
+  updateQuantity,
+  setCartOpen,
+} from "@/store/slices/cartSlice";
+import { useToast } from "@/hooks/use-toast";
 
 const Cart = () => {
   const dispatch = useDispatch();
-  const { items, total, itemCount, isOpen } = useSelector((state: RootState) => state.cart);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { items, total, itemCount, isOpen } = useSelector(
+    (state: RootState) => state.cart
+  );
 
   const handleQuantityChange = (productId: string, quantity: number) => {
     if (quantity < 1) {
@@ -31,25 +40,32 @@ const Cart = () => {
     });
   };
 
+  const handleCheckout = () => {
+    dispatch(setCartOpen(false));
+    navigate("/checkout");
+  };
+
   if (!isOpen) return null;
 
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
         onClick={() => dispatch(setCartOpen(false))}
       />
-      
+
       {/* Cart panel */}
       <div className="fixed right-0 top-0 h-full w-full max-w-md bg-card border-l border-border z-50 shadow-2xl animate-slide-in-right">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-border">
             <div>
-              <h2 className="text-lg font-semibold text-card-foreground">Shopping Cart</h2>
+              <h2 className="text-lg font-semibold text-card-foreground">
+                Shopping Cart
+              </h2>
               <p className="text-sm text-muted-foreground">
-                {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                {itemCount} {itemCount === 1 ? "item" : "items"}
               </p>
             </div>
             <Button
@@ -81,9 +97,13 @@ const Cart = () => {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-card-foreground mb-2">Your cart is empty</h3>
-                <p className="text-muted-foreground mb-6">Add some products to get started</p>
-                <Button 
+                <h3 className="text-lg font-medium text-card-foreground mb-2">
+                  Your cart is empty
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  Add some products to get started
+                </p>
+                <Button
                   onClick={() => dispatch(setCartOpen(false))}
                   className="bg-primary hover:bg-primary/90"
                 >
@@ -93,7 +113,10 @@ const Cart = () => {
             ) : (
               <div className="space-y-4">
                 {items.map((item) => (
-                  <div key={item.product.id} className="flex gap-4 p-4 bg-muted/20 rounded-lg">
+                  <div
+                    key={item.product.id}
+                    className="flex gap-4 p-4 bg-muted/20 rounded-lg"
+                  >
                     <img
                       src={item.product.image}
                       alt={item.product.name}
@@ -103,7 +126,9 @@ const Cart = () => {
                       <h4 className="font-medium text-card-foreground line-clamp-2">
                         {item.product.name}
                       </h4>
-                      <p className="text-sm text-muted-foreground">{item.product.brand}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.product.brand}
+                      </p>
                       <div className="flex items-center justify-between mt-2">
                         <span className="font-semibold text-primary">
                           ${item.product.price.toLocaleString()}
@@ -113,18 +138,31 @@ const Cart = () => {
                             size="sm"
                             variant="outline"
                             className="w-8 h-8 p-0"
-                            onClick={() => handleQuantityChange(item.product.id, item.quantity - 1)}
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.product.id,
+                                item.quantity - 1
+                              )
+                            }
                           >
                             <Minus className="w-3 h-3" />
                           </Button>
-                          <Badge variant="secondary" className="px-2 py-1 min-w-[2rem] text-center">
+                          <Badge
+                            variant="secondary"
+                            className="px-2 py-1 min-w-[2rem] text-center"
+                          >
                             {item.quantity}
                           </Badge>
                           <Button
                             size="sm"
                             variant="outline"
                             className="w-8 h-8 p-0"
-                            onClick={() => handleQuantityChange(item.product.id, item.quantity + 1)}
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.product.id,
+                                item.quantity + 1
+                              )
+                            }
                           >
                             <Plus className="w-3 h-3" />
                           </Button>
@@ -152,25 +190,26 @@ const Cart = () => {
                 <span className="text-card-foreground">Total:</span>
                 <span className="text-primary">${total.toLocaleString()}</span>
               </div>
-              
+
               <Separator />
-              
+
               <div className="space-y-3">
-                <Button 
+                <Button
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3"
                   size="lg"
+                  onClick={handleCheckout}
                 >
                   Checkout
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
                   onClick={() => dispatch(setCartOpen(false))}
                 >
                   Continue Shopping
                 </Button>
               </div>
-              
+
               <p className="text-xs text-muted-foreground text-center">
                 Shipping and taxes calculated at checkout
               </p>

@@ -1,30 +1,56 @@
-import { useEffect, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { Filter, Grid, LayoutGrid } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import ProductCard from './ProductCard';
-import { RootState } from '@/store/store';
-import { setSelectedCategory, setSortBy } from '@/store/slices/productsSlice';
-import ProductModal from './ProductModal';
-import { Product } from '@/store/slices/productsSlice';
+import { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { Filter, Grid, LayoutGrid, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import ProductCard from "./ProductCard";
+import { RootState } from "@/store/store";
+import {
+  setSelectedCategory,
+  setSortBy,
+  setSearchQuery,
+} from "@/store/slices/productsSlice";
+import ProductModal from "./ProductModal";
+import { Product } from "@/store/slices/productsSlice";
 
 const ProductGrid = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchTerm, setSearchTerm] = useState("");
+
   const dispatch = useDispatch();
-  const { filteredProducts, categories, selectedCategory, sortBy, loading } = useSelector(
-    (state: RootState) => state.products
-  );
+  const {
+    filteredProducts,
+    categories,
+    selectedCategory,
+    sortBy,
+    loading,
+    searchQuery,
+  } = useSelector((state: RootState) => state.products);
 
   const handleCategoryFilter = (category: string) => {
     dispatch(setSelectedCategory(category));
   };
 
   const handleSortChange = (value: string) => {
-    dispatch(setSortBy(value as any));
+    dispatch(
+      setSortBy(
+        value as "price-low" | "price-high" | "rating" | "newest" | "popular"
+      )
+    );
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    dispatch(setSearchQuery(searchTerm));
   };
 
   return (
@@ -32,82 +58,114 @@ const ProductGrid = () => {
       <div className="container mx-auto px-4">
         {/* Section header */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">Featured Products</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-2">
+            Featured Products
+          </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Discover our curated collection of the latest tech gadgets and accessories
+            Discover our curated collection of the latest tech gadgets and
+            accessories
           </p>
         </div>
 
         {/* Filters and controls */}
-        <div className="flex flex-col lg:flex-row gap-4 mb-8 items-start lg:items-center justify-between">
+        <div className="flex flex-col gap-4 mb-8">
+          {/* Search bar */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <form onSubmit={handleSearch} className="flex-1 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </form>
+
+            {/* Sort and view controls */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <Select value={sortBy} onValueChange={handleSortChange}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="popular">Most Popular</SelectItem>
+                    <SelectItem value="newest">Newest</SelectItem>
+                    <SelectItem value="price-low">
+                      Price: Low to High
+                    </SelectItem>
+                    <SelectItem value="price-high">
+                      Price: High to Low
+                    </SelectItem>
+                    <SelectItem value="rating">Highest Rated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* View mode toggle */}
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                <Button
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                  className="rounded-none"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className="rounded-none"
+                >
+                  <Grid className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
           {/* Category filters */}
           <div className="flex flex-wrap gap-2">
             <Button
-              variant={selectedCategory === 'all' ? 'default' : 'outline'}
+              variant={selectedCategory === "all" ? "default" : "outline"}
               size="sm"
-              onClick={() => handleCategoryFilter('all')}
-              className={selectedCategory === 'all' ? 'bg-primary text-primary-foreground' : ''}
+              onClick={() => handleCategoryFilter("all")}
+              className={
+                selectedCategory === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : ""
+              }
             >
               All Products
             </Button>
             {categories.map((category) => (
               <Button
                 key={category}
-                variant={selectedCategory === category ? 'default' : 'outline'}
+                variant={selectedCategory === category ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleCategoryFilter(category)}
-                className={selectedCategory === category ? 'bg-primary text-primary-foreground' : ''}
+                className={
+                  selectedCategory === category
+                    ? "bg-primary text-primary-foreground"
+                    : ""
+                }
               >
                 {category}
               </Button>
             ))}
-          </div>
-
-          {/* Sort and view controls */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <Select value={sortBy} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* View mode toggle */}
-            <div className="flex rounded-lg border border-border overflow-hidden">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                className="rounded-none"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="rounded-none"
-              >
-                <Grid className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
         </div>
 
         {/* Results count */}
         <div className="mb-6">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
-            {selectedCategory !== 'all' && ` in ${selectedCategory}`}
+            Showing {filteredProducts.length}{" "}
+            {filteredProducts.length === 1 ? "product" : "products"}
+            {selectedCategory !== "all" && ` in ${selectedCategory}`}
           </p>
         </div>
 
@@ -147,20 +205,24 @@ const ProductGrid = () => {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-foreground mb-2">No products found</h3>
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  No products found
+                </h3>
                 <p className="text-muted-foreground mb-6">
                   Try adjusting your filters or search terms
                 </p>
-                <Button onClick={() => handleCategoryFilter('all')}>
+                <Button onClick={() => handleCategoryFilter("all")}>
                   View All Products
                 </Button>
               </div>
             ) : (
-              <div className={`grid gap-6 ${
-                viewMode === 'grid' 
-                  ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
-                  : 'grid-cols-1 lg:grid-cols-2'
-              }`}>
+              <div
+                className={`grid gap-6 ${
+                  viewMode === "grid"
+                    ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                    : "grid-cols-1 lg:grid-cols-2"
+                }`}
+              >
                 {filteredProducts.map((product) => (
                   <ProductCard
                     key={product.id}
@@ -174,12 +236,16 @@ const ProductGrid = () => {
         )}
 
         {/* Featured products section */}
-        {selectedCategory === 'all' && !loading && (
+        {selectedCategory === "all" && !loading && (
           <div className="mt-16">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-2xl font-bold text-foreground mb-2">Featured Products</h3>
-                <p className="text-muted-foreground">Hand-picked selections just for you</p>
+                <h3 className="text-2xl font-bold text-foreground mb-2">
+                  Featured Products
+                </h3>
+                <p className="text-muted-foreground">
+                  Hand-picked selections just for you
+                </p>
               </div>
               <Badge className="bg-primary/10 text-primary border-primary/20">
                 Editor's Choice
@@ -187,7 +253,7 @@ const ProductGrid = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProducts
-                .filter(product => product.isFeatured)
+                .filter((product) => product.isFeatured)
                 .slice(0, 3)
                 .map((product) => (
                   <ProductCard

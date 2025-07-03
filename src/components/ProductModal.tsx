@@ -1,15 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { X, Heart, ShoppingCart, Star, Truck, Shield, RotateCcw } from 'lucide-react';
+import { X, Heart, ShoppingCart, Star, Truck, Shield, RotateCcw, MessageSquare, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Product } from '@/store/slices/productsSlice';
 import { addToCart } from '@/store/slices/cartSlice';
 import { addToWishlist, removeFromWishlist } from '@/store/slices/wishlistSlice';
+import { addReview, Review } from '@/store/slices/userSlice';
+import { updateProductRating } from '@/store/slices/productsSlice';
 import { RootState } from '@/store/store';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { authService } from '@/services/authService';
+import AuthModal from './AuthModal';
 
 interface ProductModalProps {
   product: Product;
@@ -19,10 +26,23 @@ interface ProductModalProps {
 const ProductModal = ({ product, onClose }: ProductModalProps) => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    comment: '',
+  });
   
   const dispatch = useDispatch();
+  const { toast } = useToast();
   const wishlistItems = useSelector((state: RootState) => state.wishlist.items);
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.user);
   const isInWishlist = wishlistItems.some(item => item.id === product.id);
+
+  useEffect(() => {
+    // Load reviews for this product
+    const productReviews = authService.getReviews(product.id);
+    setReviews(productReviews);
+  }, [product.id]);
 
   const handleAddToCart = () => {
     dispatch(addToCart({ product, quantity }));
@@ -33,6 +53,15 @@ const ProductModal = ({ product, onClose }: ProductModalProps) => {
   };
 
   const handleWishlistToggle = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login required",
+        description: "Please login to add items to your wishlist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isInWishlist) {
       dispatch(removeFromWishlist(product.id));
       toast({
@@ -46,6 +75,63 @@ const ProductModal = ({ product, onClose }: ProductModalProps) => {
         description: `${product.name} added to your wishlist.`,
       });
     }
+  };
+
+  const handleSubmitReview = () => {
+    if (!user) return;
+
+    const review = {
+      id: `review_${Date.now().toString(36)}`,
+      userId: user.id,
+      userName: user.name,
+      productId: product.id,
+      rating: reviewForm.rating,
+      comment: reviewForm.comment,
+      date: new Date().toISOString(),
+    };
+
+    const success = authService.saveReview(review);
+    if (success) {
+      dispatch(addReview(review));
+      setReviews(prev => [...prev, review]);
+      
+      // Update product rating
+      const { rating } = authService.getProductAverageRating(product.id);
+      dispatch(updateProductRating({ productId: product.id, rating }));
+      
+      setReviewForm({ rating: 5, comment: '' });
+      toast({
+        title: 'Review submitted',
+        description: 'Thank you for your feedback!',
+      });
+    }
+  };
+
+  const hasUserReviewed = reviews.some(review => review.userId === user?.id);
+
+  const renderStars = (rating: number, interactive = false, onRate?: (rating: number) => void) => {
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Button
+            key={star}
+            variant="ghost"
+            size="sm"
+            onClick={() => interactive && onRate?.(star)}
+            disabled={!interactive}
+            className={`p-0 h-auto ${interactive ? 'cursor-pointer' : 'cursor-default'}`}
+          >
+            <Star
+              className={`h-4 w-4 ${
+                star <= rating
+                  ? 'fill-yellow-400 text-yellow-400'
+                  : 'text-gray-300'
+              }`}
+            />
+          </Button>
+        ))}
+      </div>
+    );
   };
 
   const discountPercentage = product.originalPrice 
